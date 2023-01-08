@@ -1,6 +1,4 @@
-param (
-    [string]$filePath
-)
+$filePath = Read-Host "Enter the file path of the folder `n you would like to scan as absolute path `n (e.g. C:\path\to\your\folder)`n"
 
 $4K_IDENTIFIER = "4K"
 $8K_IDENTIFIER = "8K"
@@ -23,7 +21,6 @@ foreach ($file in $files) {
     if (!$is4k) {
         $folderName = $8K_IDENTIFIER
     }
-    Write-Output  $file.Name -replace ".*($4K_IDENTIFIER|$8K_IDENTIFIER).*", "$1"
     $folderPath = Join-Path $filePath $folderName
     if (!(Test-Path $folderPath)) {
         New-Item -ItemType Directory -Path $folderPath
@@ -42,3 +39,5 @@ foreach ($folder in $folders) {
     Compress-Archive -Path $folder.FullName -DestinationPath $zipPath
     Write-Output "Created zip archive '$zipPath'."
 }
+
+Read-Host "Press enter to exit"
