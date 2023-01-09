@@ -1,43 +1,87 @@
-$filePath = Read-Host "Enter the file path of the folder `n you would like to scan as absolute path `n (e.g. C:\path\to\your\folder)`n"
+# Import the System.IO.Compression.FileSystem assembly
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-$4K_IDENTIFIER = "4K"
-$8K_IDENTIFIER = "8K"
+$IDENTIFIERS = @('8K', '4K', '2K', '1K')
 
-# Check if the file path is a directory
-if (!(Test-Path $filePath -PathType Container)) {
-    Write-Error "The file path specified is not a directory."
-    return
-}
-Write-Output "Checked if file path is a directory."
+function SearchAndZip {
 
-# Search for files with "4K" or "8K" in the name
-$files = Get-ChildItem $filePath | Where-Object {$_.Name -match $4K_IDENTIFIER -or $_.Name -match $8K_IDENTIFIER}
-Write-Output "Searched for files with '$4K_IDENTIFIER' or '$8K_IDENTIFIER' in the name."
+    param (
+        $filePath
+    )
 
-# Create a folder for each search parameter
-foreach ($file in $files) {
-    $folderName = $4K_IDENTIFIER
-    $is4k = $file.Name -match $4K_IDENTIFIER
-    if (!$is4k) {
-        $folderName = $8K_IDENTIFIER
+    Write-Output "Input path to process: $filePath"
+
+    # Check if the file path is a directory
+    if (!(Test-Path $filePath -PathType Container)) {
+        Write-Error "The file path specified is not a directory."
+        return
     }
-    $folderPath = Join-Path $filePath $folderName
-    if (!(Test-Path $folderPath)) {
-        New-Item -ItemType Directory -Path $folderPath
+    Write-Output "Checked if file path is a directory."
+
+    foreach ($identifier in $IDENTIFIERS) {
+        Write-Output "`n`n Identifier $identifier ------------------------------------------------------------"
+        # Search for files with identifier in the name
+        $files = Get-ChildItem $filePath | Where-Object {$_.Name -match $identifier}
+        Write-Output "Searched for files with '$identifier' in the name."
+
+        if ($files.length -gt 0) {
+            # Zip folder gets name of the first file
+            $firstFileName = $files[0].Name 
+            $zipFileName = $firstFileName.replace('.png', '').replace('.jpg', '').replace('.jpeg', '').replace('_Albedo', '').replace('_AO', '').replace('_Height', '').replace('_Preview', '')
+
+            if ($zipFileName -eq "") {
+                continue
+            }
+
+            Write-Output "`n ZIP: Generated Zip Folder Name = $zipFileName`n"
+
+            $zipPath = Join-Path $filePath "$zipFileName.zip"
+            if (!(Test-Path $zipPath)) {
+                [System.IO.Compression.ZipFile]::CreateFromDirectory($filePath, $zipPath)
+            }
+            
+            # Add the files to the zip archive
+            foreach ($file in $files) {
+                Write-Output "`n File $($file.Name)-----------------------"
+                $entryName = [System.IO.Path]::GetFileName($file.FullName)
+                $zipStream = [System.IO.Compression.ZipFile]::Open($zipPath, 'Update')
+                $fileStream = [System.IO.File]::OpenRead($file.FullName)
+                $zipEntry = $zipStream.CreateEntry($entryName)
+                $fileStream.CopyTo($zipEntry.Open())
+                $zipStream.Dispose()
+                Write-Output "Zipped file '$($file.Name)' to '$zipPath'."
+            }
+
+        } else {
+            Write-Output "Did not find any files matching $identifier"
+        }   
+
     }
 
-    # Move the file to the appropriate folder
-    $destination = Join-Path $folderPath $file.Name
-    Move-Item -Path $file.FullName -Destination $destination
-    Write-Output "Moved file '$($file.Name)' to folder '$folderName'."
 }
 
-# Zip the folders
-$folders = Get-ChildItem $filePath | Where-Object {$_.PSIsContainer}
-foreach ($folder in $folders) {
-    $zipPath = "$($folder.FullName).zip"
-    Compress-Archive -Path $folder.FullName -DestinationPath $zipPath
-    Write-Output "Created zip archive '$zipPath'."
+
+$continue = $true
+
+while ($continue) {
+    # Get user input
+    # $inputPath = Read-Host "Enter the file path of the folder `n you would like to scan as absolute path `n (e.g. C:\path\to\your\folder)`n"
+    $inputPath = "C:\Users\kevin\Documents\GitHub\scripts\powershell\search_and_zip\file_test"
+
+
+    # Echo input to the console
+    SearchAndZip $inputPath
+
+    # Prompt the user if they want to continue
+    $response = Read-Host "Do you want to continue? (yes/no) "
+
+    # Check the response
+    if ($response -eq "no" -or $response -eq "n" -or $response -eq "NO" -or $response -eq "NO" ) {
+        # Set the flag to false to exit the loop
+        $continue = $false
+    }
 }
 
-Read-Host "Press enter to exit"
+Write-Output "Exiting script..."
+
+
