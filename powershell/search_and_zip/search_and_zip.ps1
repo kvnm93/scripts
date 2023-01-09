@@ -65,8 +65,8 @@ $continue = $true
 
 while ($continue) {
     # Get user input
-    # $inputPath = Read-Host "Enter the file path of the folder `n you would like to scan as absolute path `n (e.g. C:\path\to\your\folder)`n"
-    $inputPath = "C:\Users\kevin\Documents\GitHub\scripts\powershell\search_and_zip\file_test"
+    $inputPath = Read-Host "Enter the file path of the folder `n you would like to scan as absolute path `n (e.g. C:\path\to\your\folder)`n"
+    # $inputPath = "C:\Users\kevin\Documents\GitHub\scripts\powershell\search_and_zip\file_test"
 
 
     # Echo input to the console
